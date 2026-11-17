@@ -12,8 +12,20 @@ mkdir -p "$HTPASSWD_DIR"
 : > "$HTPASSWD_FILE"
 
 if [ -n "${ADMIN_USER:-}" ] && [ -n "${ADMIN_PASSWORD:-}" ]; then
+  # htpasswd 형식상 아이디에 ':' 를 쓸 수 없음 → 잘못된 설정은 바로 멈추고 이유를 남김
+  case "$ADMIN_USER" in
+    *:*) echo "[entrypoint] ERROR: ADMIN_USER 에 ':' 를 쓸 수 없습니다." >&2; exit 1 ;;
+  esac
   # 비밀번호를 명령줄 인자로 넘기지 않고 표준입력(-i)으로 넘김 → ps 로 보이지 않음
-  printf '%s\n' "$ADMIN_PASSWORD" | htpasswd -i -B "$HTPASSWD_FILE" "$ADMIN_USER" 2>/dev/null
+  if ! printf '%s\n' "$ADMIN_PASSWORD" | htpasswd -i -B "$HTPASSWD_FILE" "$ADMIN_USER" 2>/tmp/htpasswd.err; then
+    echo "[entrypoint] ERROR: 관리자 비밀번호 파일을 만들지 못했습니다: $(cat /tmp/htpasswd.err)" >&2
+    exit 1
+  fi
+  rm -f /tmp/htpasswd.err
+  if ! grep -q "^${ADMIN_USER}:" "$HTPASSWD_FILE"; then
+    echo "[entrypoint] ERROR: 비밀번호 파일에 관리자 계정이 없습니다." >&2
+    exit 1
+  fi
   echo "[entrypoint] admin account configured (user: $ADMIN_USER)"
 else
   echo "[entrypoint] ADMIN_USER / ADMIN_PASSWORD not set -> admin pages are locked (all 401)"

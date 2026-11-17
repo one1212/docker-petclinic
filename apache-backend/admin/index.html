@@ -116,8 +116,8 @@
   <script>
     const list=document.getElementById('bookings');
     function safe(value){const el=document.createElement('span');el.textContent=value||'';return el.innerHTML;}
-    // 관리자 API: Apache 관리자 인증을 통과한 브라우저만 데이터를 받음 (401이면 다시 로그인)
-    async function loadBookings(){try{const r=await fetch('/api/grooming/bookings');if(r.status===401)throw new Error('관리자 인증이 필요합니다. 페이지를 새로고침해 다시 로그인해주세요.');if(!r.ok)throw new Error('예약 목록을 불러오지 못했습니다.');const rows=await r.json();if(!rows.length){list.innerHTML='<div class="empty">아직 등록된 예약이 없습니다.</div>';return;}list.innerHTML=rows.map(b=>`<div class="booking"><strong>${safe(b.guardianName)} · ${safe(b.service)}</strong><span>반려동물 ${safe(b.petName)} · ${safe(b.preferredDate)} ${safe(b.preferredTime)} · ${safe(b.status)}</span></div>`).join('');}catch(e){list.innerHTML=`<div class="empty">${safe(e.message)}</div>`;}}
+    // 관리자 API: 이 화면 아래 경로(ADMIN_PATH/api/...)라 로그인한 인증 정보가 그대로 붙어 감 (401이면 다시 로그인)
+    async function loadBookings(){try{const r=await fetch('api/grooming/bookings');if(r.status===401)throw new Error('관리자 인증이 필요합니다. 페이지를 새로고침해 다시 로그인해주세요.');if(!r.ok)throw new Error('예약 목록을 불러오지 못했습니다.');const rows=await r.json();if(!rows.length){list.innerHTML='<div class="empty">아직 등록된 예약이 없습니다.</div>';return;}list.innerHTML=rows.map(b=>`<div class="booking"><strong>${safe(b.guardianName)} · ${safe(b.service)}</strong><span>반려동물 ${safe(b.petName)} · ${safe(b.preferredDate)} ${safe(b.preferredTime)} · ${safe(b.status)}</span></div>`).join('');}catch(e){list.innerHTML=`<div class="empty">${safe(e.message)}</div>`;}}
     loadBookings();
 
     // ===== 예약 달력 (월 단위, 1분마다 자동 새로고침) =====
@@ -135,7 +135,7 @@
       const month=`${calYear}-${pad(calMonth)}`;
       calTitle.textContent=`${calYear}년 ${calMonth}월`;
       try{
-        const r=await fetch('/api/grooming/bookings/calendar?month='+month);
+        const r=await fetch('api/grooming/bookings/calendar?month='+month);
         if(!r.ok)throw new Error();
         calRows=await r.json();
         lastLoaded=new Date();
@@ -188,7 +188,7 @@
       dmTitle.textContent='예약 상세';
       dmBody.innerHTML='<div class="empty">불러오는 중...</div>';
       try{
-        const r=await fetch('/api/grooming/bookings/'+encodeURIComponent(id));
+        const r=await fetch('api/grooming/bookings/'+encodeURIComponent(id));
         if(!r.ok)throw new Error();
         const b=await r.json();
         const tel=(b.phone||'').replace(/[^0-9+]/g,'');

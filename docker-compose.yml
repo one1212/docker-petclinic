@@ -7,6 +7,10 @@
 #   DB까지 완전 초기화:          docker compose down -v   (schema.sql / data.sql 을 고쳤을 때)
 #
 # 브라우저: http://localhost:8088
+#
+# 비밀번호는 이 파일에 적지 않음. 같은 폴더의 .env (git 제외) 에 넣고 실행:
+#   Copy-Item .env.example .env   → .env 의 값을 채운 뒤 docker compose up -d --build
+#   (값이 비어 있으면 compose 가 바로 오류를 내고 멈춤)
 
 name: petclinic
 
@@ -16,15 +20,16 @@ services:
     build: ./db-backend
     image: db-backend
     environment:
-      MYSQL_ROOT_PASSWORD: rootpw
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?.env 에 DB_ROOT_PASSWORD 를 지정하세요}
       MYSQL_DATABASE: petclinic
       MYSQL_USER: petclinic
-      MYSQL_PASSWORD: pcpw
+      MYSQL_PASSWORD: ${DB_APP_PASSWORD:?.env 에 DB_APP_PASSWORD 를 지정하세요}
     volumes:
       - db-data:/var/lib/mysql          # 예약 데이터 보관 (down 해도 유지, down -v 하면 삭제)
     healthcheck:
       # 초기화 중 임시 서버는 TCP를 안 열기 때문에, TCP(127.0.0.1)로 응답하면 진짜 준비 완료
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -prootpw --silent"]
+      # $$ = compose 가 치환하지 않고 컨테이너 안의 환경변수를 그대로 씀
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
       interval: 5s
       timeout: 5s
       retries: 30
@@ -37,7 +42,7 @@ services:
     image: tomcat-backend
     environment:
       DB_HOST: db
-      DB_PASSWORD: pcpw
+      DB_PASSWORD: ${DB_APP_PASSWORD:?.env 에 DB_APP_PASSWORD 를 지정하세요}
     depends_on:
       db:
         condition: service_healthy      # DB 준비가 끝난 뒤에 시작 → "DB 연결 끊김" 방지
