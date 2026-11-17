@@ -1,0 +1,15 @@
+# 빌드 컨텍스트에서 제외: 이미지에는 schema.sql, data.sql 만 필요
+# 로컬에서 DB를 띄웠을 때 생길 수 있는 데이터 · 덤프 파일
+**/data/
+**/*.dump
+**/*.bak
+**/*.log
+**/.idea/
+**/.vscode/
+**/.DS_Store
+**/Thumbs.db
+**/.env
+**/.git/
+**/*.md
+.dockerignore
+Dockerfile

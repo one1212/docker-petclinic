@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f4ee">
+  <title>두룹 살롱 | 뽀송 목욕 타임</title>
+  <style>
+    :root{--ink:#26352d;--muted:#718078;--green:#315c48;--mint:#e6efe8;--cream:#f6f4ee;--line:#e4e7df;--orange:#e89055;--red:#b8473f;--blue:#4ba3d6}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--cream);color:var(--ink);font-family:Arial,"Malgun Gothic",sans-serif;line-height:1.5}
+    .emoji{font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+    .sub-top{max-width:760px;margin:16px auto 0;padding:0 20px}
+    .back{color:var(--green);text-decoration:none;font-weight:700;font-size:14px}
+    main{max-width:760px;margin:16px auto 40px;padding:0 20px}
+    h1{font-size:clamp(26px,4vw,36px);margin:0 0 4px}.lead{color:var(--muted);margin:0 0 18px}
+    .card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:0 12px 34px #314b3810}
+    .hud{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;text-align:center}
+    .hud div{background:var(--mint);border-radius:12px;padding:8px 4px}
+    .hud small{display:block;color:var(--muted);font-size:12px}.hud b{font-size:20px;color:var(--green)}
+    .timebar{height:10px;border-radius:999px;background:var(--line);overflow:hidden;margin-bottom:16px}
+    .timebar i{display:block;height:100%;width:100%;background:var(--blue);transition:width .2s linear}
+    .board{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;user-select:none}
+    .tub{position:relative;aspect-ratio:1;border:0;border-radius:24px;background:radial-gradient(circle at 50% 70%,#dff1fb 0,#c6e4f5 60%,#b3d9ef 100%);cursor:pointer;font:inherit;padding:0;overflow:hidden;touch-action:manipulation}
+    .tub:focus-visible{outline:3px solid var(--orange)}
+    .tub .pet{font-size:min(68px,17vw);line-height:1;transition:transform .15s}
+    .tub .mud{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;opacity:0;transition:opacity .15s}
+    .tub .mud::before{content:"";width:62%;height:62%;border-radius:46% 54% 40% 60%;background:radial-gradient(circle,#7a5530dd 0,#7a553099 55%,transparent 72%)}
+    .tub.dirty .mud{opacity:1}
+    .tub.dirty .pet{transform:scale(1.06) rotate(-6deg)}
+    .tub.sleep .pet{filter:saturate(.7)}
+    .tub .zz{position:absolute;top:8%;right:12%;font-size:20px;font-weight:700;color:#6b7fa8;opacity:0;transition:opacity .2s}
+    .tub.sleep .zz{opacity:1}
+    .tub .ring{position:absolute;left:10%;right:10%;bottom:8%;height:7px;border-radius:999px;background:#ffffff99;overflow:hidden;opacity:0}
+    .tub.dirty .ring{opacity:1}
+    .tub .ring i{display:block;height:100%;background:var(--orange);width:100%}
+    .pop{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);font-weight:800;font-size:20px;pointer-events:none;animation:up .8s ease-out forwards}
+    .pop.good{color:var(--green)}.pop.bad{color:var(--red)}
+    @keyframes up{to{transform:translate(-50%,-140%);opacity:0}}
+    .bubble{position:absolute;width:16px;height:16px;border-radius:50%;border:2px solid #9fd6f2;background:#e9f7ffaa;pointer-events:none;animation:rise .8s ease-out forwards}
+    @keyframes rise{to{transform:translateY(-70px) scale(1.6);opacity:0}}
+    .row{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}
+    .btn{border:0;border-radius:11px;padding:12px 20px;background:var(--green);color:#fff;font:inherit;font-weight:700;cursor:pointer}
+    .btn.light{background:var(--mint);color:var(--green)}
+    .rules{margin:14px 0 0;padding-left:18px;color:var(--muted);font-size:14px}
+    .overlay{position:fixed;inset:0;background:#26352dcc;display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
+    .overlay.show{display:flex}
+    .result{background:#fff;border-radius:20px;padding:24px;width:min(380px,100%);text-align:center}
+    .result h2{margin:0 0 6px}.result .big{font-size:44px;font-weight:800;color:var(--green);margin:6px 0}
+    .result p{color:var(--muted);margin:4px 0}
+    @media(max-width:480px){.hud b{font-size:17px}.board{gap:8px}}
+  </style>
+  <link rel="stylesheet" href="site.css">
+</head>
+<body>
+  <header class="site-top"><a class="brand" href="index.html">두룹 <span>살롱</span></a>
+    <nav class="site-nav" aria-label="메뉴"><a href="index.html">예약</a><a href="lookup.html">예약 조회</a><a href="games.html" aria-current="page">게임</a><a href="youtube.html">유튜브</a></nav>
+  </header>
+  <div class="sub-top"><a class="back" href="games.html">← 게임 목록</a></div>
+  <main>
+    <h1><span class="emoji">🫧</span> 뽀송 목욕 타임</h1>
+    <p class="lead">진흙이 묻은 친구를 재빨리 눌러 씻겨 주세요. 자고 있는 친구는 깨우면 안 돼요!</p>
+    <section class="card">
+      <div class="hud">
+        <div><small>점수</small><b id="score">0</b></div>
+        <div><small>콤보</small><b id="combo">0</b></div>
+        <div><small>하트</small><b id="lives" class="emoji">❤️❤️❤️</b></div>
+        <div><small>최고 점수</small><b id="best">0</b></div>
+      </div>
+      <div class="timebar" aria-hidden="true"><i id="timebar"></i></div>
+      <div class="board" id="board" aria-label="목욕통 9개"></div>
+      <div class="row"><button class="btn" id="start" type="button">시작하기</button></div>
+      <ul class="rules">
+        <li>진흙 묻은 친구 누르기: <b>+10점</b>, 연속으로 성공하면 콤보 보너스</li>
+        <li>진흙이 마를 때까지(주황 막대가 다 줄 때까지) 못 씻기면 하트 1개 감소</li>
+        <li>자고 있는 친구(<span class="emoji">💤</span>)를 누르면 <b>-5점</b>, 콤보 초기화</li>
+        <li>45초 동안 버티거나 하트가 0이 되면 끝. 시간이 갈수록 빨라져요</li>
+      </ul>
+    </section>
+  </main>
+
+  <div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="r-title">
+    <div class="result">
+      <h2 id="r-title">목욕 끝!</h2>
+      <div class="big" id="r-score">0</div>
+      <p id="r-msg"></p>
+      <div class="row"><button class="btn" id="again" type="button">다시 하기</button><a class="btn light" href="index.html" style="text-decoration:none">미용 예약하러 가기</a></div>
+    </div>
+  </div>
+
+  <script>
+    const PETS=['🐶','🐱','🦁','🐯','🐰','🐹'];
+    const ROUND_MS=45000, START_LIVES=3;
+    const $=id=>document.getElementById(id);
+    const board=$('board');
+    let tubs=[], state=null, raf=0, spawnTimer=0;
+
+    // 최고 점수: 브라우저에만 저장 (저장이 막혀 있어도 게임은 동작)
+    function loadBest(){try{return Number(localStorage.getItem('bathBest'))||0;}catch(e){return 0;}}
+    function saveBest(v){try{localStorage.setItem('bathBest',String(v));}catch(e){}}
+    $('best').textContent=loadBest();
+
+    // 목욕통 9개
+    board.innerHTML=Array.from({length:9},(_,i)=>`<button type="button" class="tub" data-i="${i}" aria-label="목욕통 ${i+1}">
+      <span class="pet emoji"></span><span class="mud"></span><span class="zz">z<small>z</small></span><span class="ring"><i></i></span></button>`).join('');
+    tubs=[...board.children].map(el=>({el,pet:el.querySelector('.pet'),bar:el.querySelector('.ring i'),mode:'idle',until:0,life:0}));
+    function setIdle(t){t.mode='idle';t.el.className='tub';t.pet.textContent=PETS[Math.floor(Math.random()*PETS.length)];t.el.setAttribute('aria-label','깨끗한 친구');}
+    tubs.forEach(setIdle);
+
+    function hud(){
+      $('score').textContent=state.score;$('combo').textContent=state.combo;
+      $('lives').textContent='❤️'.repeat(state.lives)+'🤍'.repeat(START_LIVES-state.lives);
+    }
+    function pop(t,text,good){
+      const p=document.createElement('span');p.className='pop '+(good?'good':'bad');p.textContent=text;t.el.appendChild(p);setTimeout(()=>p.remove(),800);
+      if(good){for(let k=0;k<5;k++){const b=document.createElement('span');b.className='bubble';b.style.left=(20+Math.random()*60)+'%';b.style.top=(40+Math.random()*40)+'%';t.el.appendChild(b);setTimeout(()=>b.remove(),800);}}
+    }
+
+    // 난이도: 시간이 지날수록 진흙이 빨리 마르고 자주 생김
+    function level(){const p=Math.min((performance.now()-state.start)/ROUND_MS,1);return {dryMs:1900-p*1000,gapMs:900-p*480,sleepRate:.22+p*.12};}
+
+    function spawn(){
+      if(!state||state.over)return;
+      const free=tubs.filter(t=>t.mode==='idle');
+      if(free.length){
+        const t=free[Math.floor(Math.random()*free.length)], lv=level(), now=performance.now();
+        if(Math.random()<lv.sleepRate){t.mode='sleep';t.el.className='tub sleep';t.until=now+1400+Math.random()*900;t.el.setAttribute('aria-label','자고 있는 친구 (누르지 마세요)');}
+        else{t.mode='dirty';t.el.className='tub dirty';t.life=lv.dryMs;t.until=now+lv.dryMs;t.el.setAttribute('aria-label','진흙 묻은 친구 (눌러서 씻기기)');}
+      }
+      spawnTimer=setTimeout(spawn,level().gapMs*(0.7+Math.random()*0.6));
+    }
+
+    function tick(){
+      if(!state||state.over)return;
+      const now=performance.now(), left=Math.max(ROUND_MS-(now-state.start),0);
+      $('timebar').style.width=(left/ROUND_MS*100)+'%';
+      for(const t of tubs){
+        if(t.mode==='dirty'){
+          const remain=t.until-now;t.bar.style.width=Math.max(remain/t.life*100,0)+'%';
+          if(remain<=0){state.lives--;state.combo=0;pop(t,'💔',false);setIdle(t);hud();if(state.lives<=0)return end('하트를 모두 잃었어요.');}
+        }else if(t.mode==='sleep'&&now>=t.until){setIdle(t);}
+      }
+      if(left<=0)return end('45초 동안 잘 버텼어요!');
+      raf=requestAnimationFrame(tick);
+    }
+
+    board.addEventListener('pointerdown',e=>{
+      const el=e.target.closest('.tub');if(!el||!state||state.over)return;
+      e.preventDefault();
+      const t=tubs[Number(el.dataset.i)];
+      if(t.mode==='dirty'){state.combo++;const gain=10+Math.min(state.combo-1,10)*2;state.score+=gain;pop(t,'+'+gain,true);setIdle(t);}
+      else if(t.mode==='sleep'){state.score=Math.max(state.score-5,0);state.combo=0;pop(t,'-5',false);setIdle(t);}
+      hud();
+    });
+    // 키보드(Enter/Space)로도 플레이
+    board.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.closest('.tub')){e.preventDefault();e.target.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));}});
+
+    function start(){
+      clearTimeout(spawnTimer);cancelAnimationFrame(raf);
+      tubs.forEach(setIdle);
+      state={score:0,combo:0,lives:START_LIVES,start:performance.now(),over:false};
+      hud();$('overlay').classList.remove('show');$('start').textContent='처음부터 다시';
+      spawn();raf=requestAnimationFrame(tick);
+    }
+    function end(msg){
+      state.over=true;clearTimeout(spawnTimer);cancelAnimationFrame(raf);
+      const best=loadBest(), isBest=state.score>best;
+      if(isBest)saveBest(state.score);
+      $('best').textContent=Math.max(best,state.score);
+      $('r-score').textContent=state.score+'점';
+      $('r-msg').textContent=msg+(isBest?' 최고 기록이에요! 🎉':` (최고 ${best}점)`);
+      $('overlay').classList.add('show');$('again').focus();
+    }
+    $('start').addEventListener('click',start);
+    $('again').addEventListener('click',start);
+  </script>
+</body>
+</html>

@@ -59,8 +59,9 @@ COPY --from=build --chown=tomcat:tomcat /src/target/petclinic.war ${CATALINA_HOM
 ENV DB_HOST=db \
     DB_PORT=3306 \
     DB_NAME=petclinic \
-    DB_USER=petclinic \
-    DB_PASSWORD=petclinic
+    DB_USER=petclinic
+# DB_PASSWORD 는 기본값을 두지 않음 (이미지에 비밀번호를 남기지 않기 위해)
+# → 실행 시 꼭 지정: docker run -e DB_PASSWORD=... / K8s 에서는 Secret
 
 USER tomcat
 EXPOSE 8080

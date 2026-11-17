@@ -1,0 +1,28 @@
+# 빌드 컨텍스트에서 제외 (이미지 크기 · 빌드 속도 · 비밀 유출 방지)
+# 로컬에서 만든 빌드 결과물: 컨테이너 안에서 다시 빌드하므로 필요 없음
+app/target/
+**/*.class
+**/*.war
+
+# Maven Wrapper: Dockerfile 은 이미지 안의 mvn 을 쓰므로 필요 없음
+app/.mvn/
+app/mvnw
+app/mvnw.cmd
+
+# IDE · OS · 로그
+**/.idea/
+**/.vscode/
+**/*.iml
+**/.DS_Store
+**/Thumbs.db
+**/*.log
+
+# 비밀 · 버전 관리
+**/.env
+**/.git/
+**/.gitignore
+
+# 이미지에 필요 없는 문서 · 빌드 정의
+**/*.md
+.dockerignore
+Dockerfile

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f4ee">
+  <title>두룹 살롱 | 미용 영상</title>
+  <style>
+    :root{--ink:#26352d;--muted:#718078;--green:#315c48;--mint:#e6efe8;--cream:#f6f4ee;--line:#e4e7df;--orange:#e89055}
+    *{box-sizing:border-box}body{margin:0;background:var(--cream);color:var(--ink);font-family:Arial,"Malgun Gothic",sans-serif;line-height:1.5}
+    .emoji{font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+    main{max-width:1000px;margin:44px auto;padding:0 20px}
+    h1{font-size:clamp(26px,4vw,36px);margin:0 0 6px}.lead{color:var(--muted);margin:0 0 24px}
+    h2{font-size:19px;margin:28px 0 12px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+    .yt-card{display:flex;flex-direction:column;gap:8px;text-decoration:none;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 10px 28px #314b380d;transition:transform .15s,border-color .15s}
+    .yt-card:hover{transform:translateY(-3px);border-color:#ffc2cc}
+    .yt-card .face{font-size:46px;line-height:1}
+    .yt-card b{font-size:17px}.yt-card small{color:var(--muted)}
+    .yt-card .go{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#cc0029;margin-top:auto}
+    .note{color:var(--muted);font-size:13px;margin-top:28px}
+  </style>
+  <link rel="stylesheet" href="site.css">
+</head>
+<body>
+  <header class="site-top"><a class="brand" href="index.html">두룹 <span>살롱</span></a>
+    <nav class="site-nav" aria-label="메뉴"><a href="index.html">예약</a><a href="lookup.html">예약 조회</a><a href="games.html">게임</a><a href="youtube.html" aria-current="page">유튜브</a></nav>
+  </header>
+  <main>
+    <h1>미용 영상</h1>
+    <p class="lead">우리 아이에게 맞는 미용 영상을 유튜브에서 찾아보세요. 카드를 누르면 유튜브 검색 결과가 새 탭으로 열려요.</p>
+
+    <h2>동물별 미용</h2>
+    <div class="grid" id="animals"></div>
+
+    <h2>주제별</h2>
+    <div class="grid" id="topics"></div>
+
+    <p class="note">영상은 유튜브에서 제공되며, 두룹 살롱이 직접 만든 영상이 아닐 수 있어요.</p>
+  </main>
+  <script>
+    // 게임 화면(game.html)의 유튜브 버튼과 같은 방식: "○○ 미용" 검색 결과를 새 탭으로 엶
+    const YT='https://www.youtube.com/results?search_query=';
+    const ANIMALS=[
+      {name:'반려동물',emoji:'🐾',desc:'미용 전반'},
+      {name:'강아지',emoji:'🐶',desc:'목욕 · 컷 · 위생 미용'},
+      {name:'고양이',emoji:'🐱',desc:'빗질 · 목욕 · 스트레스 줄이기'},
+      {name:'사자',emoji:'🦁',desc:'갈기 손질'},
+      {name:'호랑이',emoji:'🐯',desc:'줄무늬 털 관리'}
+    ];
+    const TOPICS=[
+      {q:'강아지 목욕 방법',emoji:'🛁',title:'집에서 목욕하기'},
+      {q:'강아지 발톱 깎기',emoji:'💅',title:'발톱 깎기'},
+      {q:'고양이 빗질 방법',emoji:'🪮',title:'빗질 요령'},
+      {q:'반려동물 귀 청소',emoji:'👂',title:'귀 청소'},
+      {q:'강아지 미용 후 관리',emoji:'✨',title:'미용 후 관리'}
+    ];
+    function safe(v){const el=document.createElement('span');el.textContent=v||'';return el.innerHTML;}
+    function card(q,emoji,title,sub){
+      return `<a class="yt-card" href="${YT+encodeURIComponent(q)}" target="_blank" rel="noopener noreferrer" title="유튜브에서 '${safe(q)}' 검색">
+        <span class="face emoji" aria-hidden="true">${emoji}</span><b>${safe(title)}</b><small>${safe(sub)}</small>
+        <span class="go"><svg viewBox="0 0 28 20" width="22" height="16" aria-hidden="true"><rect width="28" height="20" rx="5" fill="#ff0033"/><path d="M11 5.5v9l8-4.5z" fill="#fff"/></svg>유튜브에서 보기</span></a>`;
+    }
+    document.getElementById('animals').innerHTML=ANIMALS.map(a=>card(a.name+' 미용',a.emoji,a.name+' 미용',a.desc)).join('');
+    document.getElementById('topics').innerHTML=TOPICS.map(t=>card(t.q,t.emoji,t.title,t.q)).join('');
+  </script>
+</body>
+</html>

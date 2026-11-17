@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f4ee">
+  <meta name="robots" content="noindex, nofollow">
+  <title>두룹 살롱 | 관리자</title>
+  <style>
+    :root{--ink:#26352d;--muted:#718078;--green:#315c48;--mint:#e6efe8;--cream:#f6f4ee;--line:#e4e7df;--orange:#e89055}
+    *{box-sizing:border-box}body{margin:0;background:var(--cream);color:var(--ink);font-family:Arial,"Malgun Gothic",sans-serif;line-height:1.5}
+    .top{padding:20px max(24px,calc((100% - 1120px)/2));display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);background:#fff}.brand{font-weight:800;font-size:20px;color:var(--green)}.brand span{color:var(--orange)}.top small{color:var(--muted)}
+    main{max-width:1120px;margin:52px auto;padding:0 24px}.hero{display:grid;grid-template-columns:1fr 1fr;gap:44px;align-items:center;margin-bottom:40px}.eyebrow{color:#bc7040;font-weight:700;letter-spacing:.12em;font-size:12px}.hero h1{font-size:clamp(34px,5vw,54px);line-height:1.16;margin:12px 0 16px}.hero p{color:var(--muted);font-size:17px;margin:0}.hero-art{min-height:210px;border-radius:28px;background:linear-gradient(135deg,#dce9dc,#f2dfc8);display:grid;place-items:center;font-size:86px}
+    .layout{display:grid;grid-template-columns:1.15fr .85fr;gap:24px;align-items:start}.card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:28px;box-shadow:0 12px 34px #314b3810}.card h2{font-size:21px;margin:0 0 5px}.sub{color:var(--muted);font-size:14px;margin:0 0 22px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}.field{display:flex;flex-direction:column;gap:7px}.field.full{grid-column:1/-1}label{font-size:13px;font-weight:700}input,select,textarea{border:1px solid #dce2db;border-radius:10px;padding:12px 13px;font:inherit;color:var(--ink);background:white;min-width:0}input:focus,select:focus,textarea:focus{outline:2px solid #9fbea8;border-color:transparent}textarea{resize:vertical;min-height:82px}.btn{border:0;border-radius:11px;padding:14px 18px;background:var(--green);color:white;font:inherit;font-weight:700;cursor:pointer}.btn:hover{background:#254736}.submit{width:100%;margin-top:19px}.notice{min-height:24px;margin:11px 0 0;font-size:14px}.notice.ok{color:#26734b}.notice.error{color:#b33d32}.services{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.chip{background:var(--mint);border-radius:999px;padding:7px 11px;font-size:12px;color:var(--green);font-weight:700}.booking{padding:14px 0;border-bottom:1px solid var(--line)}.booking:last-child{border:0}.booking strong{display:block}.booking span{color:var(--muted);font-size:13px}.empty{color:var(--muted);font-size:14px;padding:14px 0}footer{text-align:center;color:var(--muted);font-size:12px;padding:36px 24px}
+    @media(max-width:760px){main{margin:32px auto}.hero,.layout{grid-template-columns:1fr}.hero{gap:20px}.hero-art{min-height:150px;font-size:65px}.grid{grid-template-columns:1fr}.field.full{grid-column:auto}.top small{display:none}.card{padding:22px}}
+    /* 시간대별 예약 현황 (시간당 3명) */
+    .slot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+    .slot{border:1px solid var(--line);border-radius:12px;padding:9px 6px;background:#fff;font:inherit;cursor:pointer;text-align:center;color:var(--ink)}
+    .slot b{display:block;font-size:15px}.slot small{font-size:12px;color:var(--muted)}
+    .slot.available small{color:var(--green)}.slot.few{border-color:#f0c6a4}.slot.few small{color:#bc7040}
+    .slot.full,.slot.closed{background:#f3f3f1;color:#a5aca7;cursor:not-allowed}.slot.full small,.slot.closed small{color:#b8473f}
+    .slot.selected{border:2px solid var(--green);background:var(--mint)}
+    .slot-info{font-size:14px;padding:10px 12px;border-radius:12px;background:var(--mint);color:var(--green);margin-bottom:8px}
+    .slot-info.warn{background:#fdf1e7;color:#bc7040}.slot-info.error{background:#fbeceb;color:#b8473f}
+    .dots{letter-spacing:2px}
+    /* 게임 버튼 */
+    .top-right{display:flex;align-items:center;gap:14px}
+    .game-btn{display:inline-block;text-decoration:none;padding:9px 14px;font-size:14px;background:var(--orange)}
+    .game-btn:hover{filter:brightness(1.05)}
+    /* 예약 달력 */
+    .cal-card{margin-top:24px}
+    .cal-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+    .cal-nav{display:flex;align-items:center;gap:8px}.cal-nav strong{min-width:110px;text-align:center;font-size:17px}
+    .nav-btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:6px 12px;font:inherit;cursor:pointer;color:var(--ink)}
+    .nav-btn:hover{background:var(--mint)}.today-btn{font-size:13px}
+    .cal-status{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:13px;color:var(--muted);margin:4px 0 12px}
+    .cal-status #cal-total{color:var(--green);font-weight:700}
+    .cal-week,.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+    .cal-week span{text-align:center;font-size:12px;font-weight:700;color:var(--muted);padding-bottom:4px}
+    .cal-week .sun{color:#c0574d}.cal-week .sat{color:#4a72b0}
+    .day{min-height:104px;border:1px solid var(--line);border-radius:12px;padding:6px;background:#fff;text-align:left;font:inherit;color:var(--ink);cursor:pointer;display:flex;flex-direction:column;gap:3px;overflow:hidden}
+    .day:hover{border-color:var(--green)}.day.blank{visibility:hidden;cursor:default}
+    .day.today{border:2px solid var(--orange)}.day.selected{background:var(--mint);border-color:var(--green)}
+    .day .num{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:700}
+    .day.sun .num>span:first-child{color:#c0574d}.day.sat .num>span:first-child{color:#4a72b0}
+    .count{background:var(--green);color:#fff;border-radius:999px;font-size:11px;padding:1px 7px}
+    .entry{font-size:11.5px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:#f6f4ee;border-radius:6px;padding:1px 5px}
+    .entry b{color:var(--green);font-weight:700}.more{font-size:11px;color:var(--muted)}
+    /* 날짜 확대 모달 */
+    .entry{cursor:pointer}.entry:hover{background:var(--mint)}
+    .modal-bg{position:fixed;inset:0;background:#26352d99;display:flex;align-items:center;justify-content:center;z-index:60;padding:16px}
+    .modal-bg[hidden]{display:none}
+    .modal{background:#fff;border-radius:20px;width:min(560px,100%);max-height:85vh;overflow:auto;padding:20px;box-shadow:0 20px 50px #0003;animation:zoomIn .18s ease-out}
+    @keyframes zoomIn{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
+    .modal-head{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+    .modal-head h3{flex:1;margin:0;font-size:18px}
+    .bk-item{display:grid;grid-template-columns:58px 1fr auto;gap:10px;align-items:center;width:100%;text-align:left;border:1px solid var(--line);border-radius:12px;background:#fff;padding:11px 12px;margin-bottom:8px;font:inherit;color:var(--ink);cursor:pointer}
+    .bk-item:hover{border-color:var(--green);background:var(--mint)}
+    .bk-item b{color:var(--green);font-size:15px}.bk-item small{color:var(--muted)}
+    .bk-item .go{color:var(--muted);font-size:18px}
+    .bk-detail{display:grid;grid-template-columns:96px 1fr;border-top:1px solid var(--line)}
+    .bk-detail dt,.bk-detail dd{margin:0;padding:10px 4px;border-bottom:1px solid var(--line);font-size:14px}
+    .bk-detail dt{color:var(--muted);font-weight:700}
+    .bk-detail a{color:var(--green);font-weight:700}
+    .badge{display:inline-block;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:700;background:var(--mint);color:var(--green)}
+    .badge.CANCELLED{background:#fbeceb;color:#b8473f}.badge.CONFIRMED{background:#e3eefb;color:#2f5f9c}
+    @media(max-width:760px){.day{min-height:64px}.entry{display:none}.top-right small{display:none}}
+    /* 관리자 메뉴 */
+    .admin-tag{background:#26352d;color:#fff;border-radius:8px;font-size:12px;padding:3px 8px;margin-left:8px;vertical-align:middle}
+    .admin-nav{display:flex;gap:6px;flex-wrap:wrap}
+    .admin-nav a{color:var(--ink);text-decoration:none;font-weight:700;font-size:14px;padding:8px 12px;border-radius:10px;border:1px solid var(--line)}
+    .admin-nav a:hover{background:var(--mint)}
+    .admin-layout{display:grid;grid-template-columns:1fr;gap:24px}
+    #bookings{max-height:420px;overflow:auto}
+  </style>
+</head>
+<body>
+  <header class="top"><div class="brand">두룹 <span>살롱</span><span class="admin-tag">관리자</span></div>
+    <nav class="admin-nav" aria-label="관리자 메뉴">
+      <a href="#recent">전체 예약</a><a href="#calendar">예약 달력</a>
+    </nav>
+  </header>
+  <main>
+    <section class="admin-layout">
+      <section class="card" id="recent"><h2>전체 예약 <small style="color:var(--muted);font-weight:400;font-size:14px">(최근 50건)</small></h2><p class="sub">접수된 예약 내역입니다. 예약자 연락처는 달력에서 예약을 눌러 상세에서 확인하세요.</p><div id="bookings" aria-live="polite"><div class="empty">예약 내역을 불러오는 중...</div></div></section>
+    </section>
+
+    <!-- 예약 달력 (1분마다 자동 새로고침) -->
+    <section class="card cal-card" id="calendar">
+      <div class="cal-head">
+        <div><h2>예약 달력</h2><p class="sub" id="cal-sub">날짜별 예약 건수와 예약자를 확인할 수 있어요.</p></div>
+        <div class="cal-nav">
+          <button type="button" class="nav-btn" id="cal-prev" aria-label="이전 달">‹</button>
+          <strong id="cal-title">-</strong>
+          <button type="button" class="nav-btn" id="cal-next" aria-label="다음 달">›</button>
+          <button type="button" class="nav-btn today-btn" id="cal-today">오늘</button>
+        </div>
+      </div>
+      <div class="cal-status"><span id="cal-total">-</span><span id="cal-refresh">자동 새로고침 준비 중</span></div>
+      <div class="cal-week"><span class="sun">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span class="sat">토</span></div>
+      <div class="cal-grid" id="cal-grid" aria-live="polite"></div>
+      <!-- 날짜 확대 모달: 그날 예약 전체 목록 → 한 건 클릭 시 상세 -->
+      <div class="modal-bg" id="day-modal" hidden>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="dm-title">
+          <div class="modal-head">
+            <button type="button" class="nav-btn" id="dm-back" hidden>← 목록</button>
+            <h3 id="dm-title">-</h3>
+            <button type="button" class="nav-btn" id="dm-close" aria-label="닫기">✕</button>
+          </div>
+          <div id="dm-body"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer>두룹 살롱 관리자 화면 · 이 주소는 외부에 공유하지 마세요.</footer>
+  <script>
+    const list=document.getElementById('bookings');
+    function safe(value){const el=document.createElement('span');el.textContent=value||'';return el.innerHTML;}
+    // 관리자 API: Apache 관리자 인증을 통과한 브라우저만 데이터를 받음 (401이면 다시 로그인)
+    async function loadBookings(){try{const r=await fetch('/api/grooming/bookings');if(r.status===401)throw new Error('관리자 인증이 필요합니다. 페이지를 새로고침해 다시 로그인해주세요.');if(!r.ok)throw new Error('예약 목록을 불러오지 못했습니다.');const rows=await r.json();if(!rows.length){list.innerHTML='<div class="empty">아직 등록된 예약이 없습니다.</div>';return;}list.innerHTML=rows.map(b=>`<div class="booking"><strong>${safe(b.guardianName)} · ${safe(b.service)}</strong><span>반려동물 ${safe(b.petName)} · ${safe(b.preferredDate)} ${safe(b.preferredTime)} · ${safe(b.status)}</span></div>`).join('');}catch(e){list.innerHTML=`<div class="empty">${safe(e.message)}</div>`;}}
+    loadBookings();
+
+    // ===== 예약 달력 (월 단위, 1분마다 자동 새로고침) =====
+    const calGrid=document.getElementById('cal-grid'), calTitle=document.getElementById('cal-title'), calTotal=document.getElementById('cal-total'),
+          calRefresh=document.getElementById('cal-refresh');
+    const dayModal=document.getElementById('day-modal'), dmTitle=document.getElementById('dm-title'), dmBody=document.getElementById('dm-body'), dmBack=document.getElementById('dm-back');
+    const STATUS_KO={PENDING:'접수 대기',CONFIRMED:'예약 확정',CANCELLED:'취소'};
+    let modalMode=null;   // 'list' | 'detail' | null(닫힘)
+    const REFRESH_SEC=60, MAX_PER_DAY=3;
+    const pad=n=>String(n).padStart(2,'0');
+    const todayStr=()=>{const d=new Date();return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;};
+    let calYear=new Date().getFullYear(), calMonth=new Date().getMonth()+1, calRows=[], calSelected=null, nextRefresh=REFRESH_SEC, lastLoaded=null;
+
+    async function loadCalendar(){
+      const month=`${calYear}-${pad(calMonth)}`;
+      calTitle.textContent=`${calYear}년 ${calMonth}월`;
+      try{
+        const r=await fetch('/api/grooming/bookings/calendar?month='+month);
+        if(!r.ok)throw new Error();
+        calRows=await r.json();
+        lastLoaded=new Date();
+      }catch(e){calRefresh.textContent='달력을 불러오지 못했어요. 잠시 후 다시 시도합니다.';}
+      nextRefresh=REFRESH_SEC;
+      renderCalendar();
+    }
+
+    function renderCalendar(){
+      const byDate={};
+      calRows.forEach(b=>{(byDate[b.date]=byDate[b.date]||[]).push(b);});
+      calTotal.textContent=`${calMonth}월 예약 총 ${calRows.length}건`;
+      const first=new Date(calYear,calMonth-1,1).getDay(), days=new Date(calYear,calMonth,0).getDate(), today=todayStr();
+      let html='';
+      for(let i=0;i<first;i++)html+='<div class="day blank"></div>';
+      for(let d=1;d<=days;d++){
+        const date=`${calYear}-${pad(calMonth)}-${pad(d)}`, list=byDate[date]||[], dow=(first+d-1)%7;
+        const cls=['day',dow===0?'sun':'',dow===6?'sat':'',date===today?'today':'',date===calSelected?'selected':''].join(' ');
+        const entries=list.slice(0,MAX_PER_DAY).map(b=>`<div class="entry" data-id="${b.id}"><b>${safe(b.time)}</b> ${safe(b.guardianName)} · ${safe(b.petType)}</div>`).join('');
+        const more=list.length>MAX_PER_DAY?`<div class="more">+${list.length-MAX_PER_DAY}건 더</div>`:'';
+        html+=`<button type="button" class="${cls}" data-date="${date}" aria-label="${calMonth}월 ${d}일 예약 ${list.length}건">
+          <div class="num"><span>${d}</span>${list.length?`<span class="count">${list.length}건</span>`:''}</div>${entries}${more}</button>`;
+      }
+      calGrid.innerHTML=html;
+      if(modalMode==='list')renderDayList();   // 자동 새로고침 시 열려 있는 목록도 갱신
+      updateRefreshText();
+    }
+
+    // ===== 날짜 확대 모달 =====
+    function openDay(date){
+      calSelected=date;
+      renderCalendar();
+      renderDayList();
+      dayModal.hidden=false;
+      document.getElementById('dm-close').focus();
+    }
+    function renderDayList(){
+      modalMode='list'; dmBack.hidden=true;
+      const list=calRows.filter(b=>b.date===calSelected);
+      const [y,m,d]=calSelected.split('-').map(Number);
+      dmTitle.textContent=`${m}월 ${d}일 예약 ${list.length}건`;
+      dmBody.innerHTML=list.length?list.map(b=>`<button type="button" class="bk-item" data-id="${b.id}">
+          <b>${safe(b.time)}</b>
+          <span>${safe(b.guardianName)} · ${safe(b.petName)} (${safe(b.petType)})<br><small>${safe(b.service)}</small></span>
+          <span class="go">›</span></button>`).join('')
+        :'<div class="empty">이 날은 예약이 없어요.</div>';
+    }
+    async function openBooking(id){
+      modalMode='detail'; dmBack.hidden=false;
+      dmTitle.textContent='예약 상세';
+      dmBody.innerHTML='<div class="empty">불러오는 중...</div>';
+      try{
+        const r=await fetch('/api/grooming/bookings/'+encodeURIComponent(id));
+        if(!r.ok)throw new Error();
+        const b=await r.json();
+        const tel=(b.phone||'').replace(/[^0-9+]/g,'');
+        dmBody.innerHTML=`<dl class="bk-detail">
+          <dt>예약 일시</dt><dd>${safe(b.date)} ${safe(b.time)}</dd>
+          <dt>상태</dt><dd><span class="badge ${safe(b.status)}">${safe(STATUS_KO[b.status]||b.status)}</span></dd>
+          <dt>보호자</dt><dd>${safe(b.guardianName)}</dd>
+          <dt>연락처</dt><dd>${tel?`<a href="tel:${safe(tel)}">${safe(b.phone)}</a>`:safe(b.phone)}</dd>
+          <dt>반려동물</dt><dd>${safe(b.petName)} (${safe(b.petType)})</dd>
+          <dt>몸무게</dt><dd>${safe(b.petWeight)||'-'}</dd>
+          <dt>미용 메뉴</dt><dd>${safe(b.service)}</dd>
+          <dt>요청사항</dt><dd>${safe(b.memo)||'-'}</dd>
+          <dt>접수 시각</dt><dd>${safe(b.createdAt)}</dd>
+        </dl>`;
+      }catch(e){dmBody.innerHTML='<div class="empty">예약 정보를 불러오지 못했어요.</div>';}
+    }
+    function closeModal(){dayModal.hidden=true;modalMode=null;}
+    dmBody.addEventListener('click',e=>{const b=e.target.closest('.bk-item');if(b)openBooking(b.dataset.id);});
+    dmBack.addEventListener('click',renderDayList);
+    document.getElementById('dm-close').addEventListener('click',closeModal);
+    dayModal.addEventListener('click',e=>{if(e.target===dayModal)closeModal();});
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modalMode)closeModal();});
+
+    function updateRefreshText(){
+      if(!lastLoaded)return;
+      calRefresh.textContent=`마지막 갱신 ${pad(lastLoaded.getHours())}:${pad(lastLoaded.getMinutes())}:${pad(lastLoaded.getSeconds())} · ${nextRefresh}초 후 자동 새로고침`;
+    }
+
+    calGrid.addEventListener('click',e=>{
+      const b=e.target.closest('.day');if(!b||!b.dataset.date)return;
+      const entry=e.target.closest('.entry');
+      openDay(b.dataset.date);                       // 날짜 칸 → 확대 모달
+      if(entry)openBooking(entry.dataset.id);        // 칸 안의 예약 줄 → 바로 상세
+    });
+    document.getElementById('cal-prev').addEventListener('click',()=>{if(--calMonth<1){calMonth=12;calYear--;}loadCalendar();});
+    document.getElementById('cal-next').addEventListener('click',()=>{if(++calMonth>12){calMonth=1;calYear++;}loadCalendar();});
+    document.getElementById('cal-today').addEventListener('click',()=>{const n=new Date();calYear=n.getFullYear();calMonth=n.getMonth()+1;loadCalendar();});
+
+    // 1초마다 카운트다운, 0이 되면 달력·최근 예약·시간대 현황을 함께 새로고침
+    setInterval(()=>{
+      if(--nextRefresh<=0){loadCalendar();loadBookings();}
+      else updateRefreshText();
+    },1000);
+
+    loadCalendar();
+  </script>
+</body>
+</html>
+
+

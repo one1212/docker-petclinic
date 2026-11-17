@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f4ee">
+  <title>두룹 살롱 | 예약 조회</title>
+  <style>
+    :root{--ink:#26352d;--muted:#718078;--green:#315c48;--mint:#e6efe8;--cream:#f6f4ee;--line:#e4e7df;--orange:#e89055;--red:#b8473f}
+    *{box-sizing:border-box}body{margin:0;background:var(--cream);color:var(--ink);font-family:Arial,"Malgun Gothic",sans-serif;line-height:1.5}
+    main{max-width:760px;margin:44px auto;padding:0 20px}
+    h1{font-size:clamp(26px,4vw,36px);margin:0 0 6px}.lead{color:var(--muted);margin:0 0 24px}
+    .card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:26px;box-shadow:0 12px 34px #314b3810;margin-bottom:20px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+    .field{display:flex;flex-direction:column;gap:7px}label{font-size:13px;font-weight:700}
+    input{border:1px solid #dce2db;border-radius:10px;padding:12px 13px;font:inherit;color:var(--ink);min-width:0}
+    input:focus{outline:2px solid #9fbea8;border-color:transparent}
+    .btn{border:0;border-radius:11px;padding:13px 18px;background:var(--green);color:#fff;font:inherit;font-weight:700;cursor:pointer;width:100%;margin-top:18px}
+    .btn:disabled{opacity:.6;cursor:wait}
+    .notice{min-height:22px;margin:10px 0 0;font-size:14px}.notice.error{color:var(--red)}
+    .item{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line)}
+    .item:last-child{border:0}
+    .when{background:var(--mint);color:var(--green);border-radius:12px;padding:8px 10px;text-align:center;font-weight:700;font-size:14px;line-height:1.3}
+    .item small{color:var(--muted)}
+    .badge{border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;background:var(--mint);color:var(--green);white-space:nowrap}
+    .badge.CANCELLED{background:#fbeceb;color:var(--red)}.badge.CONFIRMED{background:#e3eefb;color:#2f5f9c}
+    .empty{color:var(--muted);font-size:14px;padding:10px 0}
+    @media(max-width:600px){.grid{grid-template-columns:1fr}.item{grid-template-columns:1fr auto}.when{grid-column:1/-1;text-align:left}}
+  </style>
+  <link rel="stylesheet" href="site.css">
+</head>
+<body>
+  <header class="site-top"><a class="brand" href="index.html">두룹 <span>살롱</span></a>
+    <nav class="site-nav" aria-label="메뉴"><a href="index.html">예약</a><a href="lookup.html" aria-current="page">예약 조회</a><a href="games.html">게임</a><a href="youtube.html">유튜브</a></nav>
+  </header>
+  <main>
+    <h1>예약 조회</h1>
+    <p class="lead">예약할 때 입력한 <b>보호자 이름</b>과 <b>연락처</b>를 그대로 입력하면 내 예약을 볼 수 있어요.</p>
+    <section class="card">
+      <form id="lookup-form" autocomplete="on">
+        <div class="grid">
+          <div class="field"><label for="guardian">보호자 이름</label><input id="guardian" name="guardianName" required maxlength="60" placeholder="홍길동" autocomplete="name"></div>
+          <div class="field"><label for="phone">연락처</label><input id="phone" name="phone" required maxlength="30" type="tel" placeholder="010-1234-5678" autocomplete="tel"></div>
+        </div>
+        <button class="btn" id="submit" type="submit">조회하기</button>
+        <p class="notice" id="notice" role="status"></p>
+      </form>
+    </section>
+    <section class="card" id="result-card" hidden>
+      <h2 style="margin:0 0 6px;font-size:20px">내 예약</h2>
+      <div id="result" aria-live="polite"></div>
+    </section>
+  </main>
+  <script>
+    const form=document.getElementById('lookup-form'), notice=document.getElementById('notice'), submit=document.getElementById('submit'),
+          card=document.getElementById('result-card'), result=document.getElementById('result');
+    const STATUS_KO={PENDING:'접수 대기',CONFIRMED:'예약 확정',CANCELLED:'취소'};
+    function safe(v){const el=document.createElement('span');el.textContent=v||'';return el.innerHTML;}
+    form.addEventListener('submit',async e=>{
+      e.preventDefault();
+      notice.className='notice';notice.textContent='';submit.disabled=true;submit.textContent='조회 중...';
+      // 개인정보(이름 · 연락처)라 주소창(URL)에 남지 않도록 POST 본문으로 보냄
+      const data=Object.fromEntries(new FormData(form).entries());
+      try{
+        const r=await fetch('/api/grooming/bookings/lookup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+        const body=await r.json().catch(()=>null);
+        if(!r.ok)throw new Error((body&&body.message)||'조회하지 못했습니다. 잠시 후 다시 시도해주세요.');
+        card.hidden=false;
+        result.innerHTML=body.length
+          ?body.map(b=>`<div class="item"><div class="when">${safe(b.date)}<br>${safe(b.time)}</div>
+              <div><b>${safe(b.petName)}</b> (${safe(b.petType)}) · ${safe(b.service)}<br><small>접수 ${safe(b.createdAt)}</small></div>
+              <span class="badge ${safe(b.status)}">${safe(STATUS_KO[b.status]||b.status)}</span></div>`).join('')
+          :'<div class="empty">일치하는 예약이 없어요. 예약할 때 입력한 이름과 연락처가 맞는지 확인해주세요.</div>';
+      }catch(err){card.hidden=true;notice.className='notice error';notice.textContent=err.message;}
+      finally{submit.disabled=false;submit.textContent='조회하기';}
+    });
+  </script>
+</body>
+</html>
