@@ -1,0 +1,13 @@
+# 빌드 컨텍스트에서 제외: 이미지에는 index.html, game.html, zz-petclinic.conf 만 필요
+**/.idea/
+**/.vscode/
+**/.DS_Store
+**/Thumbs.db
+**/*.log
+**/*.bak
+**/*.swp
+**/.env
+**/.git/
+**/*.md
+.dockerignore
+Dockerfile

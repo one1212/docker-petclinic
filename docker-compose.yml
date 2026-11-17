@@ -56,6 +56,12 @@ services:
     image: apache-backend
     ports:
       - "8088:80"                       # 내 PC 8088 → Apache 80 (포트 바꾸려면 앞 숫자만 수정)
+    environment:
+      # 관리자 계정: 값은 여기 적지 않고 실행하는 셸의 환경변수(또는 .env 파일)에서 가져옴
+      # 비어 있으면 관리자 화면 · 관리자 API 는 모두 잠김(401)
+      ADMIN_USER: ${ADMIN_USER:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_PATH: ${ADMIN_PATH:-/staff-room}
     depends_on:
       - tomcat-backend
     restart: unless-stopped

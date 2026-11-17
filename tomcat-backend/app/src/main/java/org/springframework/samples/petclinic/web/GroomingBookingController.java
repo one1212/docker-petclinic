@@ -33,7 +33,10 @@ import org.springframework.web.bind.annotation.RestController;
  *   <li>GET  /api/grooming/bookings/availability?date=   날짜별 시간대 현황 (시간당 정원 3명)</li>
  *   <li>GET  /api/grooming/bookings/calendar?month=      월별 예약 달력</li>
  *   <li>POST /api/grooming/bookings                      예약 저장 (정원 초과 시 409)</li>
+ *   <li>POST /api/grooming/bookings/lookup               본인 예약 조회 (이름 + 연락처 둘 다 일치)</li>
  * </ul>
+ * 목록 · 상세 · 달력은 관리자 전용이며, 접근 제어는 앞단 Apache(WEB)에서 함
+ * (apache-backend/zz-petclinic.conf).
  */
 @RestController
 @RequestMapping("/api/grooming/bookings")
@@ -57,6 +60,10 @@ public class GroomingBookingController {
     public record GroomingBookingRequest(
         String guardianName, String phone, String petName, String petType, String petWeight,
         String service, String preferredDate, String preferredTime, String memo) {
+    }
+
+    /** 본인 예약 조회 요청 본문 (개인정보라 URL 쿼리가 아닌 POST 본문으로 받음) */
+    public record LookupRequest(String guardianName, String phone) {
     }
 
     /** 시간대 현황 응답 한 칸 */
@@ -96,7 +103,7 @@ public class GroomingBookingController {
      * 예약 상세 (달력에서 한 건을 눌렀을 때).
      * 예) GET /api/grooming/bookings/7
      * 보호자 이름은 가운데를 가리고(조*준), 연락처는 전체를 보여줌 (운영자 본인 확인용).
-     * ⚠ 외부에 공개되는 주소로 서비스하면 누구나 연락처를 볼 수 있으니, 그때는 로그인/IP 제한을 둘 것.
+     * 관리자 전용: Apache 에서 관리자 인증을 통과한 요청만 여기까지 옴.
      */
     @GetMapping("/{id:\\d+}")
     public ResponseEntity<?> detail(@PathVariable("id") long id) {
@@ -187,6 +194,35 @@ public class GroomingBookingController {
             ORDER BY preferred_at, id""".formatted(ACTIVE), from, to)));
     }
 
+    /**
+     * 본인 예약 조회 (로그인 없는 사용자용).
+     * 이름과 연락처가 둘 다 일치하는 예약만 돌려줌. 연락처는 숫자만 비교 (010-1234-5678 = 01012345678).
+     * 응답에는 연락처 · 요청사항을 넣지 않음.
+     * 예) POST /api/grooming/bookings/lookup  {"guardianName":"홍길동","phone":"010-1234-5678"}
+     */
+    @PostMapping("/lookup")
+    public ResponseEntity<?> lookup(@RequestBody(required = false) LookupRequest request) {
+        if (request == null || blank(request.guardianName()) || blank(request.phone())) {
+            return ResponseEntity.badRequest().body(message("이름과 연락처를 모두 입력해주세요."));
+        }
+        if (tooLong(request.guardianName(), 60) || tooLong(request.phone(), 30)) {
+            return ResponseEntity.badRequest().body(message("입력한 내용이 허용 길이를 초과했습니다."));
+        }
+        String digits = request.phone().replaceAll("[^0-9]", "");
+        if (digits.length() < 9) {
+            return ResponseEntity.badRequest().body(message("연락처를 정확히 입력해주세요."));
+        }
+        return ResponseEntity.ok(jdbcTemplate.queryForList("""
+            SELECT DATE_FORMAT(preferred_at, '%Y-%m-%d') AS date, DATE_FORMAT(preferred_at, '%H:%i') AS time,
+                   pet_name AS petName, pet_type AS petType, service, status,
+                   DATE_FORMAT(created_at, '%Y-%m-%d %H:%i') AS createdAt
+            FROM grooming_bookings
+            WHERE guardian_name = ?
+              AND REGEXP_REPLACE(phone, '[^0-9]', '') = ?
+            ORDER BY preferred_at DESC
+            LIMIT 20""", request.guardianName().strip(), digits));
+    }
+
     @PostMapping
     public ResponseEntity<Map<String, Object>> create(@RequestBody GroomingBookingRequest request) {
         if (request == null || blank(request.guardianName()) || blank(request.phone()) || blank(request.petName())
@@ -213,6 +249,7 @@ public class GroomingBookingController {
         if (slotAt.isBefore(LocalDateTime.now())) {
             return ResponseEntity.badRequest().body(message("이미 지난 시간은 예약할 수 없습니다."));
         }
+
 
         var slotTs = Timestamp.valueOf(slotAt);
         var slotEnd = Timestamp.valueOf(slotAt.plusHours(1));

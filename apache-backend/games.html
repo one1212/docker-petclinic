@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f4ee">
+  <title>두룹 살롱 | 게임</title>
+  <style>
+    :root{--ink:#26352d;--muted:#718078;--green:#315c48;--mint:#e6efe8;--cream:#f6f4ee;--line:#e4e7df;--orange:#e89055}
+    *{box-sizing:border-box}body{margin:0;background:var(--cream);color:var(--ink);font-family:Arial,"Malgun Gothic",sans-serif;line-height:1.5}
+    .emoji{font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+    main{max-width:900px;margin:44px auto;padding:0 20px}
+    h1{font-size:clamp(26px,4vw,36px);margin:0 0 6px}.lead{color:var(--muted);margin:0 0 24px}
+    .games{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+    .game{display:block;text-decoration:none;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:22px;padding:24px;box-shadow:0 12px 34px #314b3810;transition:transform .15s,border-color .15s}
+    .game:hover{transform:translateY(-4px);border-color:var(--orange)}
+    .art{height:150px;border-radius:18px;display:grid;place-items:center;font-size:64px;margin-bottom:16px}
+    .art.a{background:linear-gradient(135deg,#dce9dc,#f2dfc8)}.art.b{background:linear-gradient(135deg,#dff1fb,#c6e4f5)}
+    .game h2{margin:0 0 4px;font-size:21px}.game p{margin:0;color:var(--muted);font-size:14px}
+    .play{display:inline-block;margin-top:14px;font-weight:700;color:var(--green)}
+    @media(max-width:640px){.games{grid-template-columns:1fr}}
+  </style>
+  <link rel="stylesheet" href="site.css">
+</head>
+<body>
+  <header class="site-top"><a class="brand" href="index.html">두룹 <span>살롱</span></a>
+    <nav class="site-nav" aria-label="메뉴"><a href="index.html">예약</a><a href="lookup.html">예약 조회</a><a href="games.html" aria-current="page">게임</a><a href="youtube.html">유튜브</a></nav>
+  </header>
+  <main>
+    <h1>게임</h1>
+    <p class="lead">미용 받으러 오기 전에 우리 아이와 함께 즐겨 보세요.</p>
+    <div class="games">
+      <a class="game" href="game.html">
+        <div class="art a emoji" aria-hidden="true">✂️ 🐶</div>
+        <h2>미용 체험 게임</h2>
+        <p>강아지 · 고양이 · 사자 · 호랑이를 골라 목욕시키고 털을 다듬고 산책까지!</p>
+        <span class="play">플레이하기 →</span>
+      </a>
+      <a class="game" href="bath-game.html">
+        <div class="art b emoji" aria-hidden="true">🫧 🐱</div>
+        <h2>뽀송 목욕 타임</h2>
+        <p>진흙 묻은 친구를 재빨리 씻겨 주는 45초 순발력 게임. 자는 친구는 깨우지 마세요.</p>
+        <span class="play">플레이하기 →</span>
+      </a>
+    </div>
+  </main>
+</body>
+</html>
