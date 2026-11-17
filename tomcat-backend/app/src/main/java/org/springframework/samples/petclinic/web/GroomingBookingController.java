@@ -6,10 +6,15 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.PessimisticLockingFailureException;
@@ -77,8 +82,13 @@ public class GroomingBookingController {
         }
     }
 
+    /** 예약 조회 시도 제한: 10분에 10번 */
+    static final int LOOKUP_MAX_ATTEMPTS = 10;
+    static final long LOOKUP_WINDOW_MS = 10 * 60 * 1000L;
+
     private final JdbcTemplate jdbcTemplate;
     private final TransactionTemplate tx;
+    private final Map<String, Deque<Long>> lookupAttempts = new ConcurrentHashMap<>();
 
     @Autowired
     public GroomingBookingController(JdbcTemplate jdbcTemplate) {
@@ -87,23 +97,24 @@ public class GroomingBookingController {
         this.tx = new TransactionTemplate(new DataSourceTransactionManager(jdbcTemplate.getDataSource()));
     }
 
-    /** 최근 예약 50건 (보호자 이름은 가운데 글자를 가려서 내보냄) */
+    /**
+     * 최근 예약 50건. 관리자 전용 (Apache 에서 관리자 인증을 통과한 ADMIN_PATH/api/... 요청만 옴)
+     * → 관리자가 연락할 수 있도록 이름을 가리지 않음.
+     */
     @GetMapping
     public List<Map<String, Object>> list() {
-        return maskNames(jdbcTemplate.queryForList("""
+        return jdbcTemplate.queryForList("""
             SELECT id, guardian_name AS guardianName, pet_name AS petName, service,
                    DATE_FORMAT(preferred_at, '%Y-%m-%d') AS preferredDate,
                    DATE_FORMAT(preferred_at, '%H:%i') AS preferredTime, status
             FROM grooming_bookings
             ORDER BY preferred_at DESC
-            LIMIT 50"""));
+            LIMIT 50""");
     }
 
     /**
-     * 예약 상세 (달력에서 한 건을 눌렀을 때).
+     * 예약 상세 (달력에서 한 건을 눌렀을 때). 관리자 전용 → 이름 · 연락처 전체.
      * 예) GET /api/grooming/bookings/7
-     * 보호자 이름은 가운데를 가리고(조*준), 연락처는 전체를 보여줌 (운영자 본인 확인용).
-     * 관리자 전용: Apache 에서 관리자 인증을 통과한 요청만 여기까지 옴.
      */
     @GetMapping("/{id:\\d+}")
     public ResponseEntity<?> detail(@PathVariable("id") long id) {
@@ -117,9 +128,7 @@ public class GroomingBookingController {
         if (rows.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(message("예약을 찾을 수 없습니다."));
         }
-        var row = rows.get(0);
-        row.put("guardianName", maskName((String) row.get("guardianName")));
-        return ResponseEntity.ok(row);
+        return ResponseEntity.ok(rows.get(0));
     }
 
     /**
@@ -186,22 +195,29 @@ public class GroomingBookingController {
         }
         var from = Timestamp.valueOf(month.atDay(1).atStartOfDay());
         var to = Timestamp.valueOf(month.plusMonths(1).atDay(1).atStartOfDay());
-        return ResponseEntity.ok(maskNames(jdbcTemplate.queryForList("""
+        return ResponseEntity.ok(jdbcTemplate.queryForList("""
             SELECT id, DATE_FORMAT(preferred_at, '%%Y-%%m-%%d') AS date, DATE_FORMAT(preferred_at, '%%H:%%i') AS time,
                    guardian_name AS guardianName, pet_name AS petName, pet_type AS petType, service, status
             FROM grooming_bookings
             WHERE preferred_at >= ? AND preferred_at < ? AND %s
-            ORDER BY preferred_at, id""".formatted(ACTIVE), from, to)));
+            ORDER BY preferred_at, id""".formatted(ACTIVE), from, to));
     }
 
     /**
      * 본인 예약 조회 (로그인 없는 사용자용).
      * 이름과 연락처가 둘 다 일치하는 예약만 돌려줌. 연락처는 숫자만 비교 (010-1234-5678 = 01012345678).
-     * 응답에는 연락처 · 요청사항을 넣지 않음.
+     * 응답에는 연락처 · 요청사항을 넣지 않음. 같은 접속지에서 10분에 10번까지 (넘으면 429).
+     * guardian_name 인덱스로 후보를 먼저 좁힌 뒤 그 행들만 연락처 숫자를 비교함.
      * 예) POST /api/grooming/bookings/lookup  {"guardianName":"홍길동","phone":"010-1234-5678"}
      */
     @PostMapping("/lookup")
-    public ResponseEntity<?> lookup(@RequestBody(required = false) LookupRequest request) {
+    public ResponseEntity<?> lookup(@RequestBody(required = false) LookupRequest request, HttpServletRequest http) {
+        long retryAfter = lookupRetryAfter(clientKey(http));
+        if (retryAfter > 0) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", String.valueOf(retryAfter))
+                .body(message("조회를 너무 많이 시도했어요. " + ((retryAfter + 59) / 60) + "분 후에 다시 시도해주세요."));
+        }
         if (request == null || blank(request.guardianName()) || blank(request.phone())) {
             return ResponseEntity.badRequest().body(message("이름과 연락처를 모두 입력해주세요."));
         }
@@ -313,28 +329,48 @@ public class GroomingBookingController {
         });
     }
 
-    // ===== 개인정보 가리기 =====
+    // ===== 예약 조회 시도 횟수 제한 =====
 
-    /** 목록의 guardianName 을 모두 가림 */
-    private static List<Map<String, Object>> maskNames(List<Map<String, Object>> rows) {
-        rows.forEach(r -> r.put("guardianName", maskName((String) r.get("guardianName"))));
-        return rows;
+    /**
+     * 같은 접속지(IP)에서 10분에 10번까지만 조회 허용 → 이름 · 번호를 바꿔 가며 남의 예약을 찾는 것을 막음.
+     * 주의: WAS 인스턴스마다 따로 셈 (Pod 가 2개면 최대 2배). 더 엄격히 하려면 DB · Redis 같은 공용 저장소 필요.
+     * @return 허용이면 0, 막히면 다시 시도할 수 있을 때까지 남은 초
+     */
+    private long lookupRetryAfter(String clientKey) {
+        long now = System.currentTimeMillis();
+        long windowStart = now - LOOKUP_WINDOW_MS;
+        if (lookupAttempts.size() > 10_000) {   // 오래된 기록 정리 (메모리 보호)
+            lookupAttempts.entrySet().removeIf(e -> {
+                synchronized (e.getValue()) {
+                    return e.getValue().isEmpty() || e.getValue().peekLast() < windowStart;
+                }
+            });
+        }
+        Deque<Long> times = lookupAttempts.computeIfAbsent(clientKey, k -> new ArrayDeque<>());
+        synchronized (times) {
+            while (!times.isEmpty() && times.peekFirst() < windowStart) {
+                times.pollFirst();
+            }
+            if (times.size() >= LOOKUP_MAX_ATTEMPTS) {
+                return Math.max(1, (times.peekFirst() + LOOKUP_WINDOW_MS - now) / 1000);
+            }
+            times.addLast(now);
+            return 0;
+        }
     }
 
     /**
-     * 이름 가운데 글자 가리기.
-     * 조현준 → 조*준, 남궁민수 → 남**수, 신정 → 신*, 김 → 김
+     * 접속지 IP. Apache(WEB) 가 X-Forwarded-For 맨 뒤에 실제 접속 주소를 붙임.
+     * 맨 앞 값은 사용자가 마음대로 넣을 수 있으므로 쓰지 않고 맨 뒤 값을 씀.
+     * (④ EKS 에서 ALB 뒤에 두면 맨 뒤 값이 ALB 주소가 되므로 그때는 ALB 가 붙인 값을 쓰도록 바꿔야 함)
      */
-    static String maskName(String name) {
-        if (name == null) {
-            return null;
+    private static String clientKey(HttpServletRequest http) {
+        String xff = http.getHeader("X-Forwarded-For");
+        if (xff != null && !xff.isBlank()) {
+            String[] hops = xff.split(",");
+            return hops[hops.length - 1].strip();
         }
-        int[] cp = name.strip().codePoints().toArray();
-        return switch (cp.length) {
-            case 0, 1 -> name.strip();
-            case 2 -> new String(cp, 0, 1) + "*";
-            default -> new String(cp, 0, 1) + "*".repeat(cp.length - 2) + new String(cp, cp.length - 1, 1);
-        };
+        return http.getRemoteAddr();
     }
 
 

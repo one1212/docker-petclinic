@@ -73,7 +73,8 @@ CREATE TABLE IF NOT EXISTS grooming_bookings (
   status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_grooming_preferred_at (preferred_at),
-  INDEX idx_grooming_phone (phone)
+  INDEX idx_grooming_phone (phone),
+  INDEX idx_grooming_guardian_name (guardian_name)   -- 예약 조회(이름 + 연락처)용
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 미용 예약 시간대(1시간 단위) 정원. 시간당 최대 capacity 명까지 예약 가능.
