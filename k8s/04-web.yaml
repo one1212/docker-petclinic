@@ -10,7 +10,7 @@ metadata:
 spec:
   type: LoadBalancer
   selector: { app: web }
-  ports: [{ port: 80, targetPort: 80 }]
+  ports: [{ port: 80, targetPort: 8080 }]   # 밖에서는 80, non-root Apache 는 8080 에서 대기
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -28,23 +28,28 @@ spec:
     metadata: { labels: { app: web } }
     spec:
       terminationGracePeriodSeconds: 40
+      securityContext:       # root 로 뜨려는 이미지는 시작 자체를 거부
+        runAsNonRoot: true
       containers:
       - name: apache
-        image: 903859731938.dkr.ecr.ap-northeast-2.amazonaws.com/apache-backend:1.0.0
+        image: 903859731938.dkr.ecr.ap-northeast-2.amazonaws.com/apache-backend:1.0.1
         envFrom: [{ configMapRef: { name: petclinic-config } }]
         env:
         - name: ADMIN_USER
           valueFrom: { secretKeyRef: { name: petclinic-secret, key: ADMIN_USER } }
         - name: ADMIN_PASSWORD
           valueFrom: { secretKeyRef: { name: petclinic-secret, key: ADMIN_PASSWORD } }
-        ports: [{ containerPort: 80 }]
+        ports: [{ containerPort: 8080 }]
+        securityContext:     # 권한 상승(setuid 등) 금지, 리눅스 권한(capabilities) 전부 제거
+          allowPrivilegeEscalation: false
+          capabilities: { drop: ["ALL"] }
         lifecycle:           # 종료 전에 10초 대기 → Service 에서 먼저 빠진 뒤 종료 (요청 끊김 방지)
           preStop: { exec: { command: ["sleep", "10"] } }
         readinessProbe:
-          httpGet: { path: /, port: 80 }
+          httpGet: { path: /, port: 8080 }
           periodSeconds: 5
         livenessProbe:
-          httpGet: { path: /, port: 80 }
+          httpGet: { path: /, port: 8080 }
           initialDelaySeconds: 10
           periodSeconds: 20
         resources:

@@ -38,13 +38,18 @@ ENV TZ=Asia/Seoul \
     PATH=/opt/tomcat/bin:$PATH
 
 # Java 설치 + Tomcat 다운로드/설치
-RUN apk add --no-cache openjdk21-jre-headless curl tzdata \
+#   [빌드 최적화] curl 은 다운로드에만 필요 → 가상 패키지(.fetch)로 설치했다가 같은 RUN 안에서 삭제
+#   (다른 RUN 에서 지우면 앞 레이어에 그대로 남아 크기가 안 줄어듦)
+#   non-root: tomcat 사용자를 uid/gid 10001 로 고정 (USER 에 숫자로 적기 위해)
+RUN apk add --no-cache openjdk21-jre-headless tzdata \
+ && apk add --no-cache --virtual .fetch curl \
  && curl -fsSL "https://archive.apache.org/dist/tomcat/tomcat-9/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz" \
       -o /tmp/tomcat.tar.gz \
  && mkdir -p ${CATALINA_HOME} \
  && tar -xzf /tmp/tomcat.tar.gz -C ${CATALINA_HOME} --strip-components=1 \
  && rm -rf /tmp/tomcat.tar.gz ${CATALINA_HOME}/webapps/* \
- && addgroup -S tomcat && adduser -S -G tomcat -h ${CATALINA_HOME} tomcat \
+ && apk del .fetch \
+ && addgroup -S -g 10001 tomcat && adduser -S -u 10001 -G tomcat -h ${CATALINA_HOME} tomcat \
  && chown -R tomcat:tomcat ${CATALINA_HOME}
 
 # 환경변수(DB_HOST 등) → JDBC 설정으로 변환 (Tomcat이 시작 시 자동 실행)
@@ -63,7 +68,9 @@ ENV DB_HOST=db \
 # DB_PASSWORD 는 기본값을 두지 않음 (이미지에 비밀번호를 남기지 않기 위해)
 # → 실행 시 꼭 지정: docker run -e DB_PASSWORD=... / K8s 에서는 Secret
 
-USER tomcat
+# non-root 실행: tomcat 사용자 (uid/gid 10001)
+# 숫자로 적어야 쿠버네티스 runAsNonRoot 가 root 가 아님을 확인할 수 있음
+USER 10001:10001
 EXPOSE 8080
 
 # Tomcat을 포그라운드(PID 1)로 실행

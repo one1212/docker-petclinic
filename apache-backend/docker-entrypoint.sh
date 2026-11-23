@@ -31,9 +31,8 @@ else
   echo "[entrypoint] ADMIN_USER / ADMIN_PASSWORD not set -> admin pages are locked (all 401)"
 fi
 
-# Apache 자식 프로세스(apache 사용자)만 읽을 수 있게
-chown root:apache "$HTPASSWD_FILE"
-chmod 640 "$HTPASSWD_FILE"
+# 컨테이너가 apache 사용자(non-root)로 실행되므로 파일 주인도 apache → 주인만 읽기/쓰기
+chmod 600 "$HTPASSWD_FILE"
 
 # Apache 프로세스에는 평문 비밀번호를 넘기지 않음
 unset ADMIN_PASSWORD

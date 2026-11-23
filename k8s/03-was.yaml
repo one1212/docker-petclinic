@@ -28,15 +28,24 @@ spec:
       - name: wait-db        # DB(RDS) 가 열릴 때까지 기다림 (compose 의 depends_on 역할)
         image: busybox:1.36
         command: ["sh", "-c", "until nc -z db 3306; do echo waiting db; sleep 3; done"]
+        securityContext:     # busybox 기본 사용자는 root → nobody(65534)로 실행해야 runAsNonRoot 통과
+          runAsUser: 65534
+          allowPrivilegeEscalation: false
+          capabilities: { drop: ["ALL"] }
       terminationGracePeriodSeconds: 40
+      securityContext:       # root 로 뜨려는 이미지는 시작 자체를 거부
+        runAsNonRoot: true
       containers:
       - name: tomcat
-        image: 903859731938.dkr.ecr.ap-northeast-2.amazonaws.com/tomcat-backend:1.0.0
+        image: 903859731938.dkr.ecr.ap-northeast-2.amazonaws.com/tomcat-backend:1.0.1
         envFrom: [{ configMapRef: { name: petclinic-config } }]
         env:
         - name: DB_PASSWORD
           valueFrom: { secretKeyRef: { name: petclinic-secret, key: DB_APP_PASSWORD } }
         ports: [{ containerPort: 8080 }]
+        securityContext:     # 권한 상승(setuid 등) 금지, 리눅스 권한(capabilities) 전부 제거
+          allowPrivilegeEscalation: false
+          capabilities: { drop: ["ALL"] }
         lifecycle:           # 종료 전에 10초 대기 → Service 에서 먼저 빠진 뒤 종료 (요청 끊김 방지)
           preStop: { exec: { command: ["sleep", "10"] } }
         startupProbe:        # 앱 배포가 끝날 때까지 최대 5분 기다림
