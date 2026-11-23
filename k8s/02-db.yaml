@@ -1,0 +1,13 @@
+# DB 계층: Amazon RDS for MySQL 8.4 (petclinic-db, 프라이빗 서브넷)
+# 클러스터 안에서 db:3306 으로 접속하면 이 Service 가 RDS 엔드포인트로 연결해 준다.
+# → ConfigMap 의 DB_HOST: db, tomcat 의 wait-db(nc -z db 3306) 를 그대로 쓸 수 있음.
+# 문자셋/시간대는 RDS 파라미터 그룹(petclinic-mysql84)에서 설정:
+#   character_set_server=utf8mb4, collation_server=utf8mb4_unicode_ci, time_zone=Asia/Seoul
+apiVersion: v1
+kind: Service
+metadata:
+  name: db
+  namespace: petclinic
+spec:
+  type: ExternalName
+  externalName: petclinic-db.cl2uo4cqiec9.ap-northeast-2.rds.amazonaws.com   # RDS 콘솔 > petclinic-db > 연결 & 보안 > 엔드포인트 (https://, :3306 없이)

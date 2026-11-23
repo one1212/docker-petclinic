@@ -1,0 +1,52 @@
+# WEB 계층: Apache 2.4, 2개, LoadBalancer(NLB, 인터넷 공개)
+# NLB 는 퍼블릭 서브넷(kubernetes.io/role/elb=1 태그)에 만들어지고, 노드(프라이빗)의 web 파드로 전달한다.
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  namespace: petclinic
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+spec:
+  type: LoadBalancer
+  selector: { app: web }
+  ports: [{ port: 80, targetPort: 80 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: petclinic
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }
+  selector: { matchLabels: { app: web } }
+  template:
+    metadata: { labels: { app: web } }
+    spec:
+      terminationGracePeriodSeconds: 40
+      containers:
+      - name: apache
+        image: 903859731938.dkr.ecr.ap-northeast-2.amazonaws.com/apache-backend:1.0.0
+        envFrom: [{ configMapRef: { name: petclinic-config } }]
+        env:
+        - name: ADMIN_USER
+          valueFrom: { secretKeyRef: { name: petclinic-secret, key: ADMIN_USER } }
+        - name: ADMIN_PASSWORD
+          valueFrom: { secretKeyRef: { name: petclinic-secret, key: ADMIN_PASSWORD } }
+        ports: [{ containerPort: 80 }]
+        lifecycle:           # 종료 전에 10초 대기 → Service 에서 먼저 빠진 뒤 종료 (요청 끊김 방지)
+          preStop: { exec: { command: ["sleep", "10"] } }
+        readinessProbe:
+          httpGet: { path: /, port: 80 }
+          periodSeconds: 5
+        livenessProbe:
+          httpGet: { path: /, port: 80 }
+          initialDelaySeconds: 10
+          periodSeconds: 20
+        resources:
+          requests: { cpu: 100m, memory: 64Mi }
+          limits: { memory: 256Mi }

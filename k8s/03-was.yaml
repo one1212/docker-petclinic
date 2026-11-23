@@ -1,0 +1,56 @@
+# WAS 계층: Tomcat 9 + Java 21, 2개, ClusterIP
+apiVersion: v1
+kind: Service
+metadata:
+  name: tomcat-backend
+  namespace: petclinic
+spec:
+  type: ClusterIP
+  selector: { app: tomcat-backend }
+  ports: [{ port: 8080, targetPort: 8080 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tomcat-backend
+  namespace: petclinic
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }   # 하나씩 새로 띄우고 준비되면 옛것 제거 → 중단 없음
+  selector: { matchLabels: { app: tomcat-backend } }
+  template:
+    metadata: { labels: { app: tomcat-backend } }
+    spec:
+      initContainers:
+      - name: wait-db        # DB(RDS) 가 열릴 때까지 기다림 (compose 의 depends_on 역할)
+        image: busybox:1.36
+        command: ["sh", "-c", "until nc -z db 3306; do echo waiting db; sleep 3; done"]
+      terminationGracePeriodSeconds: 40
+      containers:
+      - name: tomcat
+        image: 903859731938.dkr.ecr.ap-northeast-2.amazonaws.com/tomcat-backend:1.0.0
+        envFrom: [{ configMapRef: { name: petclinic-config } }]
+        env:
+        - name: DB_PASSWORD
+          valueFrom: { secretKeyRef: { name: petclinic-secret, key: DB_APP_PASSWORD } }
+        ports: [{ containerPort: 8080 }]
+        lifecycle:           # 종료 전에 10초 대기 → Service 에서 먼저 빠진 뒤 종료 (요청 끊김 방지)
+          preStop: { exec: { command: ["sleep", "10"] } }
+        startupProbe:        # 앱 배포가 끝날 때까지 최대 5분 기다림
+          httpGet: { path: /petclinic/api/health, port: 8080 }
+          periodSeconds: 10
+          failureThreshold: 30
+        readinessProbe:      # 실패하면 Service 에서 빠짐 (트래픽 안 받음)
+          httpGet: { path: /petclinic/api/health, port: 8080 }
+          periodSeconds: 10
+          failureThreshold: 3
+        livenessProbe:       # 계속 실패하면 컨테이너 재시작
+          httpGet: { path: /petclinic/api/health, port: 8080 }
+          periodSeconds: 20
+          failureThreshold: 3
+        resources:
+          requests: { cpu: 250m, memory: 512Mi }
+          limits: { memory: 1Gi }
