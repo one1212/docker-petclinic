@@ -1,0 +1,72 @@
+# DB 파드 (MySQL 8.4 StatefulSet) + PVC(EBS gp3)
+# 앱(tomcat)은 계속 RDS(db Service)를 쓰고, 이 DB 파드는 PV/PVC 로 데이터가 유지되는지 확인하는 용도.
+#   - Service 이름 mysql (RDS 를 가리키는 db 와 겹치지 않게)
+#   - 데이터: volumeClaimTemplates → 파드마다 PVC data-mysql-0 → EBS gp3 5Gi
+#   - 파드를 지워도 PVC/PV(EBS)는 남아 있고, 새 파드가 같은 볼륨을 다시 붙임
+# 사전 준비: kubectl create secret generic mysql-secret -n petclinic --from-literal=MYSQL_ROOT_PASSWORD=...
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: petclinic
+spec:
+  clusterIP: None              # headless: StatefulSet 파드에 고정 이름(mysql-0.mysql) 부여
+  selector: { app: mysql }
+  ports: [{ port: 3306, targetPort: 3306 }]
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql
+  namespace: petclinic
+spec:
+  serviceName: mysql
+  replicas: 1
+  selector: { matchLabels: { app: mysql } }
+  template:
+    metadata: { labels: { app: mysql } }
+    spec:
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999         # 공식 mysql 이미지의 mysql 사용자
+        runAsGroup: 999
+        fsGroup: 999           # 붙인 EBS 볼륨의 그룹을 999 로 → mysql 이 쓸 수 있음
+      containers:
+      - name: mysql
+        image: mysql:8.4
+        args:
+        - --character-set-server=utf8mb4
+        - --collation-server=utf8mb4_unicode_ci
+        - --default-time-zone=+09:00
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom: { secretKeyRef: { name: mysql-secret, key: MYSQL_ROOT_PASSWORD } }
+        - name: MYSQL_DATABASE
+          value: petclinic
+        ports: [{ containerPort: 3306 }]
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/mysql
+          subPath: mysql       # 새 ext4 볼륨 최상위의 lost+found 때문에 MySQL 초기화가 실패하지 않게 하위 폴더 사용
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities: { drop: ["ALL"] }
+        readinessProbe:
+          exec: { command: ["sh", "-c", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$MYSQL_ROOT_PASSWORD\" --silent"] }
+          initialDelaySeconds: 15
+          periodSeconds: 5
+        livenessProbe:
+          exec: { command: ["sh", "-c", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$MYSQL_ROOT_PASSWORD\" --silent"] }
+          initialDelaySeconds: 60
+          periodSeconds: 20
+        resources:
+          requests: { cpu: 250m, memory: 512Mi }
+          limits: { memory: 1Gi }
+  volumeClaimTemplates:        # 파드마다 PVC 를 자동 생성 (data-mysql-0)
+  - metadata: { name: data }
+    spec:
+      accessModes: ["ReadWriteOnce"]   # EBS 는 한 번에 한 노드에만 붙음
+      storageClassName: gp3
+      resources:
+        requests: { storage: 5Gi }
