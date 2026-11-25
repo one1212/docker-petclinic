@@ -37,7 +37,7 @@ spec:
         runAsNonRoot: true
       containers:
       - name: tomcat
-        image: 903859731938.dkr.ecr.ap-northeast-2.amazonaws.com/tomcat-backend:1.0.1
+        image: 903859731938.dkr.ecr.ap-northeast-2.amazonaws.com/tomcat-backend:1.0.2
         envFrom: [{ configMapRef: { name: petclinic-config } }]
         env:
         - name: DB_PASSWORD

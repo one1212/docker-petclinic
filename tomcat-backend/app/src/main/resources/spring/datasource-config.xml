@@ -25,9 +25,18 @@
     <!-- DataSource configuration for the tomcat jdbc connection pool 
     See here for more details on commons-dbcp versus tomcat-jdbc: 
     http://blog.ippon.fr/2013/03/13/improving-the-performance-of-the-spring-petclinic-sample-application-part-3-of-5/-->
+    <!-- 연결 검사: DB(RDS)가 재시작 · 중지되어 연결이 끊겨도 풀이 끊긴 연결을 재사용하지 않게 함
+         - testOnBorrow: 꺼내 쓰기 전에 validationQuery 로 확인 (30초 안에 확인한 연결은 다시 검사하지 않음)
+         - testWhileIdle: 쉬고 있는 연결도 주기적으로 확인해서 끊긴 것은 버림 -->
     <bean id="dataSource" class="org.apache.tomcat.jdbc.pool.DataSource"
           p:driverClassName="${jdbc.driverClassName}" p:url="${jdbc.url}"
-          p:username="${jdbc.username}" p:password="${jdbc.password}"/>
+          p:username="${jdbc.username}" p:password="${jdbc.password}"
+          p:validationQuery="SELECT 1"
+          p:validationQueryTimeout="3"
+          p:testOnBorrow="true"
+          p:validationInterval="30000"
+          p:testWhileIdle="true"
+          p:timeBetweenEvictionRunsMillis="30000"/>
 
     <!-- Shared JDBC access for the grooming booking API. -->
     <bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
